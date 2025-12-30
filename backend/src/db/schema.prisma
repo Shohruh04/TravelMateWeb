@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Destination {
+  id              String          @id @default(cuid())
+  name            String
+  country         String
+  description     String          @db.Text
+  imageUrl        String?
+  latitude        Float?
+  longitude       Float?
+  climate         String?
+  bestTimeToVisit String?
+  currency        String?
+  language        String?
+  timezone        String?
+  popularityScore Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  accommodations  Accommodation[]
+  attractions     Attraction[]
+
+  @@index([country])
+  @@index([popularityScore])
+  @@map("destinations")
+}
+
+model Accommodation {
+  id            String      @id @default(cuid())
+  destinationId String
+  name          String
+  type          String      // hotel, hostel, resort, apartment, etc.
+  description   String      @db.Text
+  address       String
+  imageUrl      String?
+  pricePerNight Float?
+  rating        Float?      // 1-5 stars
+  amenities     String[]    // pool, wifi, parking, etc.
+  latitude      Float?
+  longitude     Float?
+  contactEmail  String?
+  contactPhone  String?
+  websiteUrl    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([destinationId])
+  @@index([type])
+  @@map("accommodations")
+}
+
+model Attraction {
+  id            String      @id @default(cuid())
+  destinationId String
+  name          String
+  type          String      // museum, park, landmark, restaurant, etc.
+  description   String      @db.Text
+  address       String?
+  imageUrl      String?
+  entryFee      Float?
+  rating        Float?      // 1-5 stars
+  openingHours  String?
+  latitude      Float?
+  longitude     Float?
+  websiteUrl    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([destinationId])
+  @@index([type])
+  @@map("attractions")
+}
+
+model Airport {
+  id          String   @id @default(cuid())
+  code        String   @unique // IATA code (3 letters)
+  name        String
+  city        String
+  country     String
+  latitude    Float?
+  longitude   Float?
+  timezone    String?
+  isPopular   Boolean  @default(false) // For popular routes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([code])
+  @@index([city])
+  @@index([country])
+  @@index([isPopular])
+  @@map("airports")
+}
+
+model CurrencyRate {
+  id           String   @id @default(cuid())
+  code         String   @unique // ISO 4217 currency code (USD, EUR, etc.)
+  name         String   // Full currency name
+  symbol       String?  // Currency symbol ($, €, etc.)
+  rateToUSD    Float    // Exchange rate relative to USD
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([code])
+  @@map("currency_rates")
+}
+
+model TravelPhrase {
+  id            String   @id @default(cuid())
+  language      String   // Language name (French, Spanish, etc.)
+  languageCode  String   // ISO 639-1 code (fr, es, etc.)
+  category      String   // greetings, directions, emergencies, dining, etc.
+  english       String   // English phrase
+  translated    String   // Translated phrase
+  pronunciation String?  // Phonetic pronunciation
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([languageCode])
+  @@index([category])
+  @@map("travel_phrases")
+}
+
+model VisaRequirement {
+  id                   String   @id @default(cuid())
+  destinationCountry   String   // Destination country name
+  destinationCode      String   // ISO 3166-1 alpha-2 code
+  nationalityCountry   String   // Nationality country name
+  nationalityCode      String   // ISO 3166-1 alpha-2 code
+  visaRequired         Boolean  // Whether visa is required
+  stayDuration         String?  // Maximum stay duration (e.g., "90 days")
+  passportValidity     String?  // Required passport validity (e.g., "6 months")
+  entryRequirements    String[] // Array of entry requirements
+  healthRequirements   String[] // Array of health requirements
+  customsInfo          String?  // Customs information
+  travelAdvisories     String[] // Array of travel advisories
+  lastUpdated          DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([destinationCode, nationalityCode])
+  @@index([destinationCode])
+  @@index([nationalityCode])
+  @@map("visa_requirements")
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model User {
+  id                   String            @id @default(cuid())
+  email                String            @unique
+  name                 String?
+  passwordHash         String
+  stripeCustomerId     String?           @unique
+  subscriptionTier     SubscriptionTier  @default(FREE)
+  subscriptionStatus   String?           // active, canceled, past_due, trialing
+  subscriptionEndDate  DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  payments             Payment[]
+
+  @@index([email])
+  @@index([stripeCustomerId])
+  @@map("users")
+}
+
+model Payment {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripePaymentId String            @unique
+  amount          Decimal           @db.Decimal(10, 2)
+  currency        String            @default("USD")
+  status          String            // succeeded, failed, pending, refunded
+  tier            SubscriptionTier
+  billingPeriod   String            // monthly, annual
+  metadata        Json?             // Additional Stripe metadata
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([stripePaymentId])
+  @@index([status])
+  @@map("payments")
+}

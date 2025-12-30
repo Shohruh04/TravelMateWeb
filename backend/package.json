@@ -1,0 +1,31 @@
+{
+  "name": "travelmate-backend",
+  "version": "1.0.0",
+  "description": "TravelMate Backend API - Travel information platform",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "db:generate": "bunx prisma generate",
+    "db:migrate": "bunx prisma migrate dev",
+    "db:studio": "bunx prisma studio",
+    "db:push": "bunx prisma db push",
+    "db:seed": "bun run src/db/seed.ts"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@prisma/client": "^5.8.0",
+    "zod": "^3.22.4",
+    "stripe": "^14.12.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "prisma": "^5.8.0",
+    "typescript": "^5.3.3"
+  }
+}
